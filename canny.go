@@ -13,11 +13,19 @@ const (
 	VERTICAL
 )
 
+var SOBEL_1 = [...]float64{1.0, 2.0, 1.0}
+var SOBEL_2 = [...]float64{1.0, 0.0, -1.0}
+
 func CannyEdgeDetect(pixels GrayPixelImage) GrayPixelImage {
-	pixels = gaussianBlur(pixels, 7)
+	//pixels = gaussianBlur(pixels, 7)
+	//pixels = sobel(pixels)
 
 	return pixels
 }
+
+//func sobel(pixels GrayPixelImage) GrayPixelImage{
+//	return pixels
+//}
 
 // gaussianBlur performs a gaussian blur filtering on the given image by using a kernel of the given size. Note that the
 // kernel size must be odd, otherwise the function will panic. The blurred image is returned.
@@ -32,61 +40,29 @@ func gaussianBlur(pixels GrayPixelImage, kernelSize uint) GrayPixelImage {
 	return pixels
 }
 
-// getPascalTriangleRow returns the row of a pascal triangle with the given index in the form of a dense column vector.
-func getPascalTriangleRow(index uint) mat.VecDense {
-	size := int(index + 1)          // we need an array that is 1 bigger than the index of the requested row
-	values := make([]float64, size) // array to store row values
-	// calculate the row values via the binomial coefficient
-	for i := 0; i < size; i++ {
-		values[i] = float64(combin.Binomial(int(index), i))
-	}
-	// return row as dense vector
-	result := mat.NewVecDense(size, values)
-	return *result
-}
-
-// normalizeVec normalizes a given vector by summing up the elements and returning a new vector with an element sum of 1.
-func normalizeVec(v mat.VecDense) mat.VecDense {
-	// calculate the sum of all vector elements
-	sum := float64(0)
-	for i := 0; i < v.Len(); i++ {
-		sum += v.At(i, 0)
-	}
-	// create result vector that is given vector divided by sum
-	var result mat.VecDense
-	result.ScaleVec(1/sum, v.SliceVec(0, v.Len()))
-	return result
-}
-
 // applyKernel the given kernel to the provided image. The border option used is mirroring of image
 // pixels.
 func applyKernel(pixels GrayPixelImage, kernel mat.VecDense) GrayPixelImage {
 	// iterate over each pixel of the given image and apply the kernel
 	for y := 0; y < len(pixels); y++ {
 		for x := 0; x < len(pixels[y]); x++ {
-			// construct vector with vertical pixel values
-			// call mulAndSum with kernel
-			verticalSum := mulAndSum(getPixelVector(pixels, y, x, kernel.Len(), VERTICAL), kernel)
-			// construct vector with horizontal pixel values
-			// call mulAndSum again
-			horizontalSum := mulAndSum(getPixelVector(pixels, y, x, kernel.Len(), HORIZONTAL), kernel)
-			// assign new value to pixel
+			verticalSum := innerProduct(getPixelVector(pixels, y, x, kernel.Len(), VERTICAL), kernel)
+			horizontalSum := innerProduct(getPixelVector(pixels, y, x, kernel.Len(), HORIZONTAL), kernel)
 			pixels[y][x].y = uint8(verticalSum + horizontalSum)
 		}
 	}
 	return pixels
 }
 
-// mulAndSum calculates the inner product of the two given vectors. This means that the result is the sum of the
-// products of the first element of both vectors and the second element of both vectors and so on. Note that this
-// function panics if the length of both given vectors is not equal.
-func mulAndSum(pixels mat.VecDense, kernel mat.VecDense) float64 {
+// innerProduct calculates the inner product of the two given vectors. This means that the result is the sum of the
+// products of the first elements of both vectors and the sum of the second elements of both vectors and so on. Note
+// that this function panics if the length of both given vectors is not equal.
+func innerProduct(pixels mat.VecDense, kernel mat.VecDense) float64 {
 	if pixels.Len() != kernel.Len() { // vectors must have equal length
 		panic(errors.New("length of given vectors must be equal"))
 	}
 
-	result := float64(0)
-
+	var result float64 = 0
 	for i := 0; i < pixels.Len(); i++ {
 		result += pixels.At(i, 0) * kernel.At(i, 0)
 	}
@@ -95,8 +71,14 @@ func mulAndSum(pixels mat.VecDense, kernel mat.VecDense) float64 {
 }
 
 // getPixelVector returns a vector of given length from the given GrayPixelImage. The pixels are taken from the
-// position given by x and y and from the nearby area as denoted by the direction parameter.
+// position given by x and y and from the nearby area as denoted by the direction parameter. The fact that an equal
+// amount of pixels is to be returned from the left and right side of the given position requires the length parameter
+// to be an odd number. In cases of length being an even number the function panics.
 func getPixelVector(pixels GrayPixelImage, posY int, posX int, length int, dir direction) mat.VecDense {
+	if length%2 == 0 { // length must be an odd number
+		panic(errors.New("length must be odd number"))
+	}
+
 	var values []float64 // return values
 	var currentPixel GrayPixel
 	padding := (length / 2) // how much pixels to either the left and right or top and bottom we need
@@ -136,6 +118,32 @@ func getPixelVector(pixels GrayPixelImage, posY int, posX int, length int, dir d
 	}
 
 	return *mat.NewVecDense(len(values), values)
+}
+
+// getPascalTriangleRow returns the row of a pascal triangle with the given index in the form of a dense column vector.
+func getPascalTriangleRow(index uint) mat.VecDense {
+	size := int(index + 1)          // we need an array that is 1 bigger than the index of the requested row
+	values := make([]float64, size) // array to store row values
+	// calculate the row values via the binomial coefficient
+	for i := 0; i < size; i++ {
+		values[i] = float64(combin.Binomial(int(index), i))
+	}
+	// return row as dense vector
+	result := mat.NewVecDense(size, values)
+	return *result
+}
+
+// normalizeVec normalizes a given vector by summing up the elements and returning a new vector with an element sum of 1.
+func normalizeVec(v mat.VecDense) mat.VecDense {
+	// calculate the sum of all vector elements
+	var sum float64 = 0
+	for i := 0; i < v.Len(); i++ {
+		sum += v.At(i, 0)
+	}
+	// create result vector that is given vector divided by sum
+	var result mat.VecDense
+	result.ScaleVec(1/sum, v.SliceVec(0, v.Len()))
+	return result
 }
 
 // abs returns the absolute value of the given int.
