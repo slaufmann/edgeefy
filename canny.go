@@ -35,15 +35,7 @@ func gaussianBlur(pixels GrayPixelImage, kernelSize uint) GrayPixelImage {
 	}
 	kernel := getPascalTriangleRow(kernelSize - 1) // to get n kernel elements we need the (n-1)th row
 	kernel = normalizeVec(kernel)                  // normalize kernel so we don't change brightness of the pixels
-	applyKernel(pixels, kernel)                    // apply the kernel to blur the image
-
-	return pixels
-}
-
-// applyKernel the given kernel to the provided image. The border option used is mirroring of image
-// pixels.
-func applyKernel(pixels GrayPixelImage, kernel mat.VecDense) GrayPixelImage {
-	// iterate over each pixel of the given image and apply the kernel
+	// iterate over each pixel of the image and apply the gaussian kernel
 	for y := 0; y < len(pixels); y++ {
 		for x := 0; x < len(pixels[y]); x++ {
 			verticalSum := innerProduct(getPixelVector(pixels, y, x, kernel.Len(), VERTICAL), kernel)
@@ -51,29 +43,15 @@ func applyKernel(pixels GrayPixelImage, kernel mat.VecDense) GrayPixelImage {
 			pixels[y][x].y = uint8(verticalSum + horizontalSum)
 		}
 	}
+
 	return pixels
 }
 
-// innerProduct calculates the inner product of the two given vectors. This means that the result is the sum of the
-// products of the first elements of both vectors and the sum of the second elements of both vectors and so on. Note
-// that this function panics if the length of both given vectors is not equal.
-func innerProduct(pixels mat.VecDense, kernel mat.VecDense) float64 {
-	if pixels.Len() != kernel.Len() { // vectors must have equal length
-		panic(errors.New("length of given vectors must be equal"))
-	}
-
-	var result float64 = 0
-	for i := 0; i < pixels.Len(); i++ {
-		result += pixels.At(i, 0) * kernel.At(i, 0)
-	}
-
-	return result
-}
-
 // getPixelVector returns a vector of given length from the given GrayPixelImage. The pixels are taken from the
-// position given by x and y and from the nearby area as denoted by the direction parameter. The fact that an equal
-// amount of pixels is to be returned from the left and right side of the given position requires the length parameter
-// to be an odd number. In cases of length being an even number the function panics.
+// position given by x and y and from the nearby area as denoted by the direction parameter. In case of border pixels
+// pixel values mirrored from inside the image are used instead. The fact that an equal amount of pixels is to be
+// returned from the left and right side of the given position requires the length parameter to be an odd number. In
+// cases of length being an even number the function panics.
 func getPixelVector(pixels GrayPixelImage, posY int, posX int, length int, dir direction) mat.VecDense {
 	if length%2 == 0 { // length must be an odd number
 		panic(errors.New("length must be odd number"))
@@ -118,6 +96,22 @@ func getPixelVector(pixels GrayPixelImage, posY int, posX int, length int, dir d
 	}
 
 	return *mat.NewVecDense(len(values), values)
+}
+
+// innerProduct calculates the inner product of the two given vectors. This means that the result is the sum of the
+// products of the first elements of both vectors and the sum of the second elements of both vectors and so on. Note
+// that this function panics if the length of both given vectors is not equal.
+func innerProduct(pixels mat.VecDense, kernel mat.VecDense) float64 {
+	if pixels.Len() != kernel.Len() { // vectors must have equal length
+		panic(errors.New("length of given vectors must be equal"))
+	}
+
+	var result float64 = 0
+	for i := 0; i < pixels.Len(); i++ {
+		result += pixels.At(i, 0) * kernel.At(i, 0)
+	}
+
+	return result
 }
 
 // getPascalTriangleRow returns the row of a pascal triangle with the given index in the form of a dense column vector.
