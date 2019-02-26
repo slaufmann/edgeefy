@@ -15,20 +15,39 @@ const (
 	VERTICAL
 )
 
-var SOBEL_1 = [...]float64{1.0, 2.0, 1.0}
-var SOBEL_2 = [...]float64{1.0, 0.0, -1.0}
+var SOBEL_X = []float64{1, 0, -1, 2, 0, -2, 1, 0, -1} // matrix values for sobel filter (x-component)
+var SOBEL_Y = []float64{1, 2, 1, 0, 0, 0, -1, -2, -1} // matrix values for sobel filter (y-component)
 
 func CannyEdgeDetect(pixels [][]GrayPixel) [][]GrayPixel {
 	pixels = gaussianBlur(pixels, 5)
-	//pixels = sobel(pixels)
+	pixels = sobel(pixels)
 
 	return pixels
 }
 
-func sobel(pixels GrayPixelImage) GrayPixelImage{
-	
+// sobel performs the sobel edge detection filter method on the given image.
+func sobel(pixels [][]GrayPixel) [][]GrayPixel{
+	var result [][]GrayPixel
+	// build sobel filter kernels
+	sobel_X := *mat.NewDense(3, 3, SOBEL_X)
+	sobel_Y := *mat.NewDense(3, 3, SOBEL_Y)
+	// apply the two kernels to all pixels
+	for y:=0; y<len(pixels); y++ {
+		var resultRow []GrayPixel
+		for x:=0; x<len(pixels[y]); x++ {
+			// get matrices with sorrounding pixel values
+			imagePane := getSorroundingPixelMatrix(pixels, y, x, 3)
+			// convolve with kernel for x and y direction
+			sobelRes_X := convolve(imagePane, sobel_X)
+			sobelRes_Y := convolve(imagePane, sobel_Y)
+			// combine results
+			combinedRes := uint8(math.Sqrt(math.Pow(sobelRes_X, 2) + math.Pow(sobelRes_Y, 2)))
+			resultRow = append(resultRow, GrayPixel{combinedRes, uint8(255)})
+		}
+		result = append(result, resultRow)
+	}
 
-	return pixels
+	return result
 }
 
 // gaussianBlur performs a gaussian blur filtering on the given image by using a kernel of the given size. Note that the
@@ -160,6 +179,27 @@ func innerProduct(pixels mat.VecDense, kernel mat.VecDense) float64 {
 	var result float64 = 0
 	for i := 0; i < pixels.Len(); i++ {
 		result += pixels.At(i, 0) * kernel.At(i, 0)
+	}
+
+	return result
+}
+
+// convolve returns the result of the convolution operation with the two given matrices. Note that this function will
+// panic if the dimensions of the matrices are not identical.
+func convolve(m1, m2 mat.Dense) float64 {
+	row_1, col_1 := m1.Dims()
+	row_2, col_2 := m2.Dims()
+	if row_1 != row_2 || col_1 != col_2 {
+		panic(errors.New("invalid matrix dimensions for convolution operation"))
+	}
+
+	var result float64 = 0
+	rows, cols := m1.Dims()
+
+	for y:=0; y<rows; y++ {
+		for x:=0; x<cols; x++ {
+			result += m1.At(y, x) * m2.At(y, x)
+		}
 	}
 
 	return result
