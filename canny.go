@@ -18,7 +18,7 @@ const (
 var SOBEL_1 = [...]float64{1.0, 2.0, 1.0}
 var SOBEL_2 = [...]float64{1.0, 0.0, -1.0}
 
-func CannyEdgeDetect(pixels GrayPixelImage) GrayPixelImage {
+func CannyEdgeDetect(pixels [][]GrayPixel) [][]GrayPixel {
 	pixels = gaussianBlur(pixels, 5)
 	//pixels = sobel(pixels)
 
@@ -33,7 +33,7 @@ func sobel(pixels GrayPixelImage) GrayPixelImage{
 
 // gaussianBlur performs a gaussian blur filtering on the given image by using a kernel of the given size. Note that the
 // kernel size must be odd, otherwise the function will panic. The blurred image is returned.
-func gaussianBlur(pixels GrayPixelImage, kernelSize uint) GrayPixelImage {
+func gaussianBlur(pixels [][]GrayPixel, kernelSize uint) [][]GrayPixel {
 	if kernelSize%2 == 0 { // we only allow odd kernel sizes, panic if it is even
 		panic(errors.New("size of kernel must be odd"))
 	}
@@ -54,12 +54,56 @@ func gaussianBlur(pixels GrayPixelImage, kernelSize uint) GrayPixelImage {
 	return pixels
 }
 
-// getPixelVector returns a vector of given length from the given GrayPixelImage. The pixels are taken from the
+func getSorroundingPixelMatrix(pixels [][]GrayPixel, posY, posX int, length int) mat.Dense {
+	if length%2 == 0 { // length must be an odd number
+		panic(errors.New("length must be odd number"))
+	}
+
+	var values []float64 // return values
+	var currentPixel GrayPixel
+	padding := (length / 2) // how much pixels to left, right, top and bottom we need
+	// get limits for loop indices
+	minX := posX - padding
+	minY := posY - padding
+	maxX := posX + padding
+	maxY := posY + padding
+	height := len(pixels)
+	width := len(pixels[0])
+
+	var curY, curX int
+	for y:=minY; y<=maxY; y++ {
+		if y<0 {	// top border pixels
+			curY = posY + abs(y)
+		} else if y >= height {	// bottom border pixels
+			overlap := y - height + 1 // add 1 because array length is bigger than last valid index
+			curY = posY-overlap
+		} else {
+			curY = y
+		}
+		for x:=minX; x<=maxX; x++ {
+			if x<0 {	// left border pixels
+				curX = posX + abs(x)
+			} else if x>=width {	// right border pixels
+				overlap := x - width + 1 // add 1 because array length is bigger than last valid index
+				curX = posX-overlap
+			} else {
+				curX = x
+			}
+			// append pixel value
+			currentPixel = pixels[curY][curX]
+			values = append(values, float64(currentPixel.y))
+		}
+	}
+
+	return *mat.NewDense(length, length, values)
+}
+
+// getPixelVector returns a vector of given length from the given [][]GrayPixel. The pixels are taken from the
 // position given by x and y and from the nearby area as denoted by the direction parameter. In case of border pixels
 // pixel values mirrored from inside the image are used instead. The fact that an equal amount of pixels is to be
 // returned from the left and right side of the given position requires the length parameter to be an odd number. In
 // cases of length being an even number the function panics.
-func getPixelVector(pixels GrayPixelImage, posY int, posX int, length int, dir direction) mat.VecDense {
+func getPixelVector(pixels [][]GrayPixel, posY, posX int, length int, dir direction) mat.VecDense {
 	if length%2 == 0 { // length must be an odd number
 		panic(errors.New("length must be odd number"))
 	}
