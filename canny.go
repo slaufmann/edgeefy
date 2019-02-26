@@ -75,6 +75,9 @@ func gaussianBlur(pixels [][]GrayPixel, kernelSize uint) [][]GrayPixel {
 	return result
 }
 
+// getSorroundingPixelMatrix returns a matrix that contains the pixels sorrounding the pixel at the given location. The
+// resulting matrix is a square with the width defined by the length parameter and is centered at the given pixel
+// location. Note that this function panics if the given length is an even number.
 func getSorroundingPixelMatrix(pixels [][]GrayPixel, posY, posX int, length int) mat.Dense {
 	if length%2 == 0 { // length must be an odd number
 		panic(errors.New("length must be odd number"))
