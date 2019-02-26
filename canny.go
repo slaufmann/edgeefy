@@ -55,20 +55,24 @@ func gaussianBlur(pixels [][]GrayPixel, kernelSize uint) [][]GrayPixel {
 	if kernelSize%2 == 0 { // we only allow odd kernel sizes, panic if it is even
 		panic(errors.New("size of kernel must be odd"))
 	}
+	var result [][]GrayPixel
 	kernel := getPascalTriangleRow(kernelSize - 1) // to get n kernel elements we need the (n-1)th row
 	kernel = normalizeVec(kernel)                  // normalize kernel so we don't change brightness of the pixels
 	// iterate over each pixel of the image and apply the gaussian kernel
 	for y := 0; y < len(pixels); y++ {
+		var resultRow []GrayPixel
 		for x := 0; x < len(pixels[y]); x++ {
 			vecVert := getPixelVector(pixels, y, x, kernel.Len(), VERTICAL)
 			vecHor := getPixelVector(pixels, y, x, kernel.Len(), HORIZONTAL)
 			verticalSum := innerProduct(vecVert, kernel)
 			horizontalSum := innerProduct(vecHor, kernel)
-			pixels[y][x].y = uint8(math.Sqrt(verticalSum*verticalSum + horizontalSum*horizontalSum))	// combine both sums
+			combinedRes := uint8(math.Sqrt(verticalSum*verticalSum + horizontalSum*horizontalSum))	// combine both sums
+			resultRow = append(resultRow, GrayPixel{combinedRes, 255})
 		}
+		result = append(result, resultRow)
 	}
 
-	return pixels
+	return result
 }
 
 func getSorroundingPixelMatrix(pixels [][]GrayPixel, posY, posX int, length int) mat.Dense {
