@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/combin"
 )
@@ -17,15 +18,17 @@ var SOBEL_1 = [...]float64{1.0, 2.0, 1.0}
 var SOBEL_2 = [...]float64{1.0, 0.0, -1.0}
 
 func CannyEdgeDetect(pixels GrayPixelImage) GrayPixelImage {
-	//pixels = gaussianBlur(pixels, 7)
+	pixels = gaussianBlur(pixels, 5)
 	//pixels = sobel(pixels)
 
 	return pixels
 }
 
-//func sobel(pixels GrayPixelImage) GrayPixelImage{
-//	return pixels
-//}
+func sobel(pixels GrayPixelImage) GrayPixelImage{
+	
+
+	return pixels
+}
 
 // gaussianBlur performs a gaussian blur filtering on the given image by using a kernel of the given size. Note that the
 // kernel size must be odd, otherwise the function will panic. The blurred image is returned.
@@ -35,12 +38,15 @@ func gaussianBlur(pixels GrayPixelImage, kernelSize uint) GrayPixelImage {
 	}
 	kernel := getPascalTriangleRow(kernelSize - 1) // to get n kernel elements we need the (n-1)th row
 	kernel = normalizeVec(kernel)                  // normalize kernel so we don't change brightness of the pixels
+	fmt.Printf("normalized gaussian kernel: %s\n", kernel)
 	// iterate over each pixel of the image and apply the gaussian kernel
 	for y := 0; y < len(pixels); y++ {
 		for x := 0; x < len(pixels[y]); x++ {
-			verticalSum := innerProduct(getPixelVector(pixels, y, x, kernel.Len(), VERTICAL), kernel)
-			horizontalSum := innerProduct(getPixelVector(pixels, y, x, kernel.Len(), HORIZONTAL), kernel)
-			pixels[y][x].y = uint8(verticalSum + horizontalSum)
+			vecVert := getPixelVector(pixels, y, x, kernel.Len(), VERTICAL)
+			vecHor := getPixelVector(pixels, y, x, kernel.Len(), HORIZONTAL)
+			verticalSum := innerProduct(vecVert, kernel)
+			horizontalSum := innerProduct(vecHor, kernel)
+			pixels[y][x].y = uint8((verticalSum + horizontalSum)/2)	// calculate weighted average to keep brightness
 		}
 	}
 

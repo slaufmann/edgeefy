@@ -20,7 +20,7 @@ type GrayPixelImage [][]GrayPixel
 func main() {
 	// register the jpeg format with the image library and open the sample image
 	image.RegisterFormat("jpeg", "jpeg", jpeg.Decode, jpeg.DecodeConfig)
-	file, err := os.Open("./logo.jpg")
+	file, err := os.Open("./test2.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -76,14 +76,6 @@ func getPixelArray(file io.Reader) (GrayPixelImage, error) {
 	return pixelArr, nil
 }
 
-// rgbaToGrayPixel converts the given color object to a GrayPixel object.
-func rgbaToGrayPixel(pixel color.Color) GrayPixel {
-	_, _, _, a := pixel.RGBA()
-	gray := color.GrayModel.Convert(pixel).(color.Gray).Y
-
-	return GrayPixel{gray, uint8(a >> 8)}
-}
-
 // getImageFromArray takes pixel information from the given two-dimensional array and creates a corresponding image.
 func getImageFromArray(pixels GrayPixelImage) *image.Gray {
 	// construct bounding rectangle and create clear grayscale image
@@ -98,4 +90,12 @@ func getImageFromArray(pixels GrayPixelImage) *image.Gray {
 	}
 
 	return img
+}
+
+// rgbaToGrayPixel converts the given Color object to a GrayPixel object.
+func rgbaToGrayPixel(pixel color.Color) GrayPixel {
+	_, _, _, a := pixel.RGBA()
+	gray := color.GrayModel.Convert(pixel).(color.Gray).Y
+
+	return GrayPixel{gray, uint8(a >> 8)}
 }
