@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/combin"
+	"math"
 )
 
 type direction int
@@ -46,7 +47,7 @@ func gaussianBlur(pixels GrayPixelImage, kernelSize uint) GrayPixelImage {
 			vecHor := getPixelVector(pixels, y, x, kernel.Len(), HORIZONTAL)
 			verticalSum := innerProduct(vecVert, kernel)
 			horizontalSum := innerProduct(vecHor, kernel)
-			pixels[y][x].y = uint8((verticalSum + horizontalSum)/2)	// calculate weighted average to keep brightness
+			pixels[y][x].y = uint8(math.Sqrt(verticalSum*verticalSum + horizontalSum*horizontalSum))	// combine both sums
 		}
 	}
 
