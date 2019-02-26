@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/combin"
 	"math"
@@ -58,7 +57,6 @@ func gaussianBlur(pixels [][]GrayPixel, kernelSize uint) [][]GrayPixel {
 	}
 	kernel := getPascalTriangleRow(kernelSize - 1) // to get n kernel elements we need the (n-1)th row
 	kernel = normalizeVec(kernel)                  // normalize kernel so we don't change brightness of the pixels
-	fmt.Printf("normalized gaussian kernel: %s\n", kernel)
 	// iterate over each pixel of the image and apply the gaussian kernel
 	for y := 0; y < len(pixels); y++ {
 		for x := 0; x < len(pixels[y]); x++ {
@@ -171,7 +169,7 @@ func getPixelVector(pixels [][]GrayPixel, posY, posX int, length int, dir direct
 // innerProduct calculates the inner product of the two given vectors. This means that the result is the sum of the
 // products of the first elements of both vectors and the sum of the second elements of both vectors and so on. Note
 // that this function panics if the length of both given vectors is not equal.
-func innerProduct(pixels mat.VecDense, kernel mat.VecDense) float64 {
+func innerProduct(pixels, kernel mat.VecDense) float64 {
 	if pixels.Len() != kernel.Len() { // vectors must have equal length
 		panic(errors.New("length of given vectors must be equal"))
 	}
