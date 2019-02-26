@@ -15,12 +15,10 @@ type GrayPixel struct {
 	a uint8
 }
 
-type GrayPixelImage [][]GrayPixel
-
 func main() {
 	// register the jpeg format with the image library and open the sample image
 	image.RegisterFormat("jpeg", "jpeg", jpeg.Decode, jpeg.DecodeConfig)
-	file, err := os.Open("./logo.jpg")
+	file, err := os.Open("./test2.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,8 +49,8 @@ func main() {
 // getPixelArray reads the given file as an image and returns a two-dimensional array of GrayPixel objects. The values
 // in the returned array are stored in the way that arr[m][n] refers to the n-th column of the m-th row of the image
 // data.
-func getPixelArray(file io.Reader) (GrayPixelImage, error) {
-	var pixelArr GrayPixelImage
+func getPixelArray(file io.Reader) ([][]GrayPixel, error) {
+	var pixelArr [][]GrayPixel
 
 	// load the image from given file and determine image bounds
 	img, _, err := image.Decode(file)
@@ -76,16 +74,8 @@ func getPixelArray(file io.Reader) (GrayPixelImage, error) {
 	return pixelArr, nil
 }
 
-// rgbaToGrayPixel converts the given color object to a GrayPixel object.
-func rgbaToGrayPixel(pixel color.Color) GrayPixel {
-	_, _, _, a := pixel.RGBA()
-	gray := color.GrayModel.Convert(pixel).(color.Gray).Y
-
-	return GrayPixel{gray, uint8(a >> 8)}
-}
-
 // getImageFromArray takes pixel information from the given two-dimensional array and creates a corresponding image.
-func getImageFromArray(pixels GrayPixelImage) *image.Gray {
+func getImageFromArray(pixels [][]GrayPixel) *image.Gray {
 	// construct bounding rectangle and create clear grayscale image
 	bounds := image.Rect(0, 0, len(pixels[0]), len(pixels))
 	img := image.NewGray(bounds)
@@ -98,4 +88,12 @@ func getImageFromArray(pixels GrayPixelImage) *image.Gray {
 	}
 
 	return img
+}
+
+// rgbaToGrayPixel converts the given Color object to a GrayPixel object.
+func rgbaToGrayPixel(pixel color.Color) GrayPixel {
+	_, _, _, a := pixel.RGBA()
+	gray := color.GrayModel.Convert(pixel).(color.Gray).Y
+
+	return GrayPixel{gray, uint8(a >> 8)}
 }
