@@ -31,7 +31,7 @@ func main() {
 	}
 
 	// perform Canny edge detection on the pixel array
-	pixels = CannyEdgeDetect(pixels)
+	pixels = CannyEdgeDetect(pixels, bool(false))
 
 	// create grayscale image from the pixel array and write it to disk
 	grayImg := getImageFromArray(pixels)

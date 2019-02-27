@@ -18,8 +18,10 @@ const (
 var SOBEL_X = []float64{1, 0, -1, 2, 0, -2, 1, 0, -1} // matrix values for sobel filter (x-component)
 var SOBEL_Y = []float64{1, 2, 1, 0, 0, 0, -1, -2, -1} // matrix values for sobel filter (y-component)
 
-func CannyEdgeDetect(pixels [][]GrayPixel) [][]GrayPixel {
-	pixels = gaussianBlur(pixels, 5)
+func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
+	if blur {
+		pixels = gaussianBlur(pixels, 5)
+	}
 	pixels, angles := sobel(pixels)
 	fmt.Printf("angles:\n")
 	for y:=0; y<len(angles); y++ {
