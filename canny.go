@@ -2,6 +2,7 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/combin"
 	"math"
@@ -19,21 +20,33 @@ var SOBEL_Y = []float64{1, 2, 1, 0, 0, 0, -1, -2, -1} // matrix values for sobel
 
 func CannyEdgeDetect(pixels [][]GrayPixel) [][]GrayPixel {
 	pixels = gaussianBlur(pixels, 5)
-	pixels = sobel(pixels)
+	pixels, angles := sobel(pixels)
+	fmt.Printf("angles:\n")
+	for y:=0; y<len(angles); y++ {
+		fmt.Printf("row %d:", y)
+		for x:=0; x<len(angles[0]); x++ {
+			fmt.Printf("col %d: %f ", x, angles[y][x])
+		}
+		fmt.Printf("\n")
+	}
 
 	return pixels
 }
 
-// sobel performs the sobel edge detection filter method on the given image.
-func sobel(pixels [][]GrayPixel) [][]GrayPixel{
+// sobel performs the sobel edge detection filter method on the given image. In addition it returns the gradient
+// directions of all pixels as a two-dimensional array of degree values.
+func sobel(pixels [][]GrayPixel) ([][]GrayPixel, [][]float64){
 	var result [][]GrayPixel
+	var directions [][]float64
 	// build sobel filter kernels
 	sobel_X := *mat.NewDense(3, 3, SOBEL_X)
 	sobel_Y := *mat.NewDense(3, 3, SOBEL_Y)
 	// apply the two kernels to all pixels
 	for y:=0; y<len(pixels); y++ {
 		var resultRow []GrayPixel
+		var angleRow []float64
 		for x:=0; x<len(pixels[y]); x++ {
+			var angle float64
 			// get matrices with sorrounding pixel values
 			imagePane := getSorroundingPixelMatrix(pixels, y, x, 3)
 			// convolve with kernel for x and y direction
@@ -42,11 +55,20 @@ func sobel(pixels [][]GrayPixel) [][]GrayPixel{
 			// combine results
 			combinedRes := uint8(math.Sqrt(math.Pow(sobelRes_X, 2) + math.Pow(sobelRes_Y, 2)))
 			resultRow = append(resultRow, GrayPixel{combinedRes, uint8(255)})
+			// calculate gradient direction
+			if (sobelRes_X == float64(0)) || (sobelRes_Y == float64(0)) {
+				angle = float64(0)
+			} else {
+				angle = math.Atan(sobelRes_Y / sobelRes_X)
+			}
+			angle = angle * (180/math.Pi)	// convert from radians to degree
+			angleRow = append(angleRow, angle)
 		}
 		result = append(result, resultRow)
+		directions = append(directions, angleRow)
 	}
 
-	return result
+	return result, directions
 }
 
 // gaussianBlur performs a gaussian blur filtering on the given image by using a kernel of the given size. Note that the
