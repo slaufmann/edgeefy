@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/combin"
 	"math"
@@ -23,16 +22,75 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
 		pixels = gaussianBlur(pixels, 5)
 	}
 	pixels, angles := sobel(pixels)
-	fmt.Printf("angles:\n")
-	for y:=0; y<len(angles); y++ {
-		fmt.Printf("row %d:", y)
-		for x:=0; x<len(angles[0]); x++ {
-			fmt.Printf("col %d: %f ", x, angles[y][x])
-		}
-		fmt.Printf("\n")
-	}
+	pixels = nonMaximumSuppression(pixels, angles)
+	//fmt.Printf("angles:\n")
+	//for y:=0; y<len(angles); y++ {
+	//	fmt.Printf("row %d:", y)
+	//	for x:=0; x<len(angles[0]); x++ {
+	//		fmt.Printf("col %d: %f ", x, angles[y][x])
+	//	}
+	//	fmt.Printf("\n")
+	//}
 
 	return pixels
+}
+
+func nonMaximumSuppression(pixels [][]GrayPixel, directions [][]float64) [][]GrayPixel {
+	// panic if the two given arrays don't have identical dimensions
+	if (len(pixels) != len(directions)) || (len(pixels[0]) != len(directions[0])) {
+		panic(errors.New("dimensions of pixel and direction array must match"))
+	}
+	var result [][]GrayPixel
+	var pY, pX, qY, qX int
+	height := len(pixels)
+	width := len(pixels[0])
+	// iterate over pixels and evaluate corresponding directions values
+	for y:=0; y<len(pixels); y++ {
+		var resultRow []GrayPixel
+		for x:=0; x<len(pixels[0]); x++ {
+			dirVal := directions[y][x]
+			// the direction values range from -90 to 90 degrees
+			// we distinguish 5 cases:
+			if (dirVal >= float64(-90)) && (dirVal < float64(-67.5)) {
+				// -90 <= dirVal < -67.5
+				pY, pX = y-1, x
+				qY, qX = y+1, x
+			} else if (dirVal >= float64(-67.5)) && (dirVal < float64(-22.5)) {
+				// -67.5 <= dirVal < -22.5
+				pY, pX = y-1, x+1
+				qY, qX = y+1, x-1
+			} else if (dirVal >= float64(-22.5)) && (dirVal < float64(22.5)) {
+				// -22.5 <= dirVal < 22.5
+				pY, pX = y, x+1
+				qY, qX = y, x-1
+			} else if (dirVal >= float64(22.5)) && (dirVal < float64(67.5)) {
+				// 22.5 <= dirVal < 67.5
+				pY, pX = y+1, x+1
+				qY, qX = y-1, x-1
+			} else if (dirVal >= float64(67.5)) && (dirVal <= float64(90)) {
+				// 67.5 <= dirVal <= 90
+				pY, pX = y+1, x
+				qY, qX = y-1, x
+			} else {
+				panic(errors.New("invalid value for direction, out of range [-90, 90]"))
+			}
+			if (pY < 0) || (pY >= height) { pY = y }
+			if (pX < 0) || (pX >= width) { pX = x }
+			if (qY < 0) || (qY >= height) { qY = y }
+			if (qX < 0) || (qX >= width) { qX = x }
+			r := pixels[y][x]
+			p := pixels[pY][pX]
+			q := pixels[qY][qX]
+			if (p.y > r.y) || (q.y > r.y) {
+				resultRow = append(resultRow, GrayPixel{uint8(0), uint8(255)})
+			} else {
+				resultRow = append(resultRow, r)
+			}
+		}
+		result = append(result, resultRow)
+	}
+
+	return result
 }
 
 // sobel performs the sobel edge detection filter method on the given image. In addition it returns the gradient
