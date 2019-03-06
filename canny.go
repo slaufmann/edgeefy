@@ -23,14 +23,6 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
 	}
 	pixels, angles := sobel(pixels)
 	pixels = nonMaximumSuppression(pixels, angles)
-	//fmt.Printf("angles:\n")
-	//for y:=0; y<len(angles); y++ {
-	//	fmt.Printf("row %d:", y)
-	//	for x:=0; x<len(angles[0]); x++ {
-	//		fmt.Printf("col %d: %f ", x, angles[y][x])
-	//	}
-	//	fmt.Printf("\n")
-	//}
 
 	return pixels
 }
