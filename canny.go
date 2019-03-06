@@ -155,8 +155,8 @@ func getPixelInGradientDirection(pixels [][]GrayPixel, directions [][]float64, x
 	if (qY < 0) || (qY >= height) { qY = y }
 	if (qX < 0) || (qX >= width) { qX = x }
 
-	p := pixels[pY][pX]
-	q := pixels[qY][qX]
+	p = pixels[pY][pX]
+	q = pixels[qY][qX]
 	return p, q
 }
 
