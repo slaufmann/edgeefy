@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/combin"
+	"image"
 	"math"
 )
 
@@ -13,6 +15,9 @@ const (
 	HORIZONTAL direction = iota
 	VERTICAL
 )
+
+const HIGH_THRESHOLD_RATIO = 0.7
+const LOW_THRESHHOLD_RATIO = 0.3
 
 var SOBEL_X = []float64{1, 0, -1, 2, 0, -2, 1, 0, -1} // matrix values for sobel filter (x-component)
 var SOBEL_Y = []float64{1, 2, 1, 0, 0, 0, -1, -2, -1} // matrix values for sobel filter (y-component)
@@ -24,7 +29,34 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
 	pixels, angles := sobel(pixels)
 	pixels = nonMaximumSuppression(pixels, angles)
 
+	max := maxPixelValue(pixels)
+	high := HIGH_THRESHOLD_RATIO*float64(max)
+	low := LOW_THRESHHOLD_RATIO*float64(max)
+	strong, weak := doublethreshold(pixels , high, low)
+	fmt.Printf("strong: %d pixels, weak: %d pixels\n", len(strong), len(weak))
+
 	return pixels
+}
+
+// doublethreshold compares every pixel of the given two-dimensional image with the two given thresholds and sorts them
+// into two result arrays. One for pixels that are above the high threshold (strong edges) and one for pixels of weak
+// edges that fall between the high and low threshold.
+func doublethreshold(pixels [][]GrayPixel, high, low float64) ([]image.Point, []image.Point) {
+	var strong []image.Point
+	var weak []image.Point
+	// iterate through image pixels and compare with threshold values
+	for y:=0; y<len(pixels); y++ {
+		for x:=0; x<len(pixels[0]); x++ {
+			pixVal := float64(pixels[y][x].y)
+			if pixVal > high {
+				strong = append(strong, image.Point{x, y})
+			} else if (high > pixVal) && (pixVal > low) {
+				weak = append(weak, image.Point{x, y})
+			}
+		}
+	}
+
+	return strong, weak
 }
 
 // nonMaximumSuppression performs a filter that isolates the maximum pixels in local areas so that detected edges get
@@ -319,6 +351,21 @@ func normalizeVec(v mat.VecDense) mat.VecDense {
 	var result mat.VecDense
 	result.ScaleVec(1/sum, v.SliceVec(0, v.Len()))
 	return result
+}
+
+// maxPixelValue returns the maximum pixel value of the given two-dimensional GrayPixel array.
+func maxPixelValue(pixels [][]GrayPixel) uint8 {
+	var max uint8 = 0
+	for y:=0; y<len(pixels); y++ {
+		for x:=0; x<len(pixels[0]); x++ {
+			pixVal := pixels[y][x].y
+			if pixVal > max {
+				max = pixVal
+			}
+		}
+	}
+
+	return max
 }
 
 // abs returns the absolute value of the given int.
