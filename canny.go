@@ -1,6 +1,7 @@
 package main
 
 import (
+	"container/list"
 	"errors"
 	"fmt"
 	"gonum.org/v1/gonum/mat"
@@ -33,7 +34,7 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
 	high := HIGH_THRESHOLD_RATIO*float64(max)
 	low := LOW_THRESHHOLD_RATIO*float64(max)
 	strong, weak := doublethreshold(pixels , high, low)
-	fmt.Printf("strong: %d pixels, weak: %d pixels\n", len(strong), len(weak))
+	fmt.Printf("strong: %d pixels, weak: %d pixels\n", strong.Len(), weak.Len())
 
 	return pixels
 }
@@ -41,22 +42,22 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
 // doublethreshold compares every pixel of the given two-dimensional image with the two given thresholds and sorts them
 // into two result arrays. One for pixels that are above the high threshold (strong edges) and one for pixels of weak
 // edges that fall between the high and low threshold.
-func doublethreshold(pixels [][]GrayPixel, high, low float64) ([]image.Point, []image.Point) {
-	var strong []image.Point
-	var weak []image.Point
+func doublethreshold(pixels [][]GrayPixel, high, low float64) (list.List, list.List) {
+	strong := list.New()
+	weak := list.New()
 	// iterate through image pixels and compare with threshold values
 	for y:=0; y<len(pixels); y++ {
 		for x:=0; x<len(pixels[0]); x++ {
 			pixVal := float64(pixels[y][x].y)
 			if pixVal > high {
-				strong = append(strong, image.Point{x, y})
+				_ = strong.PushFront(image.Point{x, y})
 			} else if (high > pixVal) && (pixVal > low) {
-				weak = append(weak, image.Point{x, y})
+				_ = weak.PushFront(image.Point{x, y})
 			}
 		}
 	}
 
-	return strong, weak
+	return *strong, *weak
 }
 
 // nonMaximumSuppression performs a filter that isolates the maximum pixels in local areas so that detected edges get
