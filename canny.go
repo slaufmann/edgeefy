@@ -1,9 +1,8 @@
 package main
 
 import (
-	"container/list"
 	"errors"
-	"fmt"
+	"github.com/deckarep/golang-set"
 	"gonum.org/v1/gonum/mat"
 	"gonum.org/v1/gonum/stat/combin"
 	"image"
@@ -29,7 +28,6 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
 	}
 	pixels, angles := sobel(pixels)
 	pixels = nonMaximumSuppression(pixels, angles)
-
 	max := maxPixelValue(pixels)
 	high := HIGH_THRESHOLD_RATIO*float64(max)
 	low := LOW_THRESHHOLD_RATIO*float64(max)
@@ -84,7 +82,7 @@ func getAdjacentPixels(pixels [][]GrayPixel, x, y int) mapset.Set {
 }
 
 // doublethreshold compares every pixel of the given two-dimensional image with the two given thresholds and sorts them
-// into two result arrays. One for pixels that are above the high threshold (strong edges) and one for pixels of weak
+// into two result sets. One for pixels that are above the high threshold (strong edges) and one for pixels of weak
 // edges that fall between the high and low threshold.
 func doublethreshold(pixels [][]GrayPixel, high, low float64) (mapset.Set, mapset.Set) {
 	strong := mapset.NewSet()
@@ -120,9 +118,9 @@ func nonMaximumSuppression(pixels [][]GrayPixel, directions [][]float64) [][]Gra
 		for x:=0; x<len(pixels[0]); x++ {
 			r := pixels[y][x]
 			p, q := getPixelInGradientDirection(pixels, directions, x, y)
-			if (p.y > r.y) || (q.y > r.y) {
+			if (p.y > r.y) || (q.y > r.y) {	// suppress the pixel by making it black
 				resultRow = append(resultRow, GrayPixel{uint8(0), uint8(255)})
-			} else {
+			} else {	// keep value of the pixel
 				resultRow = append(resultRow, r)
 			}
 		}
