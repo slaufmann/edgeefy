@@ -22,7 +22,7 @@ const LOW_THRESHHOLD_RATIO = 0.2	// low threshold for suppression of pixels
 var SOBEL_X = []float64{1, 0, -1, 2, 0, -2, 1, 0, -1} // matrix values for sobel filter (x-component)
 var SOBEL_Y = []float64{1, 2, 1, 0, 0, 0, -1, -2, -1} // matrix values for sobel filter (y-component)
 
-func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
+func CannyEdgeDetect(pixels [][]GrayPixel, blur bool, minRatio, maxRatio float64) [][]GrayPixel {
 	if blur {
 		pixels = gaussianBlur(pixels, 5)
 	}
