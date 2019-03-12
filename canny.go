@@ -34,30 +34,76 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool) [][]GrayPixel {
 	high := HIGH_THRESHOLD_RATIO*float64(max)
 	low := LOW_THRESHHOLD_RATIO*float64(max)
 	strong, weak := doublethreshold(pixels , high, low)
-	fmt.Printf("strong: %d pixels, weak: %d pixels\n", strong.Len(), weak.Len())
+	edgeTracking(pixels, strong, weak)
 
 	return pixels
+}
+
+// edgeTracking is a function that iterates through the pixels given by the weak pixel set. It is checked whether a
+// weak pixel is neighbour with a pixel from the strong set. If that is the case the weak pixel is added to the strong
+// set. During the process all weak pixels are blackened out from the GrayPixel image.
+func edgeTracking(pixels [][]GrayPixel, strong, weak mapset.Set) {
+	// iterate over set of weak pixels
+	weakIter := weak.Iterator()
+	for weakPixel := range weakIter.C {
+		weakPoint := weakPixel.(image.Point)
+		// check if weak pixel has strong pixel as neighbour
+		neighbours := getAdjacentPixels(pixels, weakPoint.X, weakPoint.Y)
+		// if so make weak pixel strong, else do nothing
+		if strong.Intersect(neighbours).Cardinality() > 0 {	// weak pixel has strong neighbour
+			strong.Add(weakPoint)
+		}
+		// blacken out the weak pixel
+		x := weakPoint.X
+		y := weakPoint.Y
+		pixels[y][x].y = uint8(0)
+	}
+}
+
+// getAdjacentPixels returns all neigbouring pixels for a position given by x and y in the given GrayPixel image. Hereby
+// the boundaries of the image are taken into account, e.g. the pixel at position (0,0) has only three neighbour pixels.
+// The neighbouring pixels are returned in row major order in form of a set.
+func getAdjacentPixels(pixels [][]GrayPixel, x, y int) mapset.Set {
+	result := mapset.NewSet()
+	height := len(pixels)
+	width := len(pixels[0])
+	minX := int(math.Max(float64(0), float64(x-1)))
+	minY := int(math.Max(float64(0), float64(y-1)))
+	maxX := int(math.Min(float64(width), float64(x+1)))
+	maxY := int(math.Min(float64(height), float64(y+1)))
+
+	for i:=minY; i<maxY; i++ {
+		for j:=minX; j<maxX; j++ {
+			if (i!=y) && (j!=x) {
+				result.Add(image.Point{j, i})
+			}
+		}
+	}
+
+	return result
 }
 
 // doublethreshold compares every pixel of the given two-dimensional image with the two given thresholds and sorts them
 // into two result arrays. One for pixels that are above the high threshold (strong edges) and one for pixels of weak
 // edges that fall between the high and low threshold.
-func doublethreshold(pixels [][]GrayPixel, high, low float64) (list.List, list.List) {
-	strong := list.New()
-	weak := list.New()
+func doublethreshold(pixels [][]GrayPixel, high, low float64) (mapset.Set, mapset.Set) {
+	strong := mapset.NewSet()
+	weak := mapset.NewSet()
 	// iterate through image pixels and compare with threshold values
 	for y:=0; y<len(pixels); y++ {
 		for x:=0; x<len(pixels[0]); x++ {
 			pixVal := float64(pixels[y][x].y)
 			if pixVal > high {
-				_ = strong.PushFront(image.Point{x, y})
+				strong.Add(image.Point{x, y})
 			} else if (high > pixVal) && (pixVal > low) {
-				_ = weak.PushFront(image.Point{x, y})
+				weak.Add(image.Point{x, y})
+			} else {
+				pixels[y][x].y = uint8(0)
 			}
 		}
 	}
 
-	return *strong, *weak
+	return strong, weak
 }
 
 // nonMaximumSuppression performs a filter that isolates the maximum pixels in local areas so that detected edges get
