@@ -4,6 +4,7 @@ import (
 	"image"
 	"image/color"
 	"image/jpeg"
+	"image/png"
 	"io"
 	"log"
 	"os"
@@ -16,9 +17,11 @@ type GrayPixel struct {
 }
 
 func main() {
-	// register the jpeg format with the image library and open the sample image
+	// register the jpeg and png formats with the image library
 	image.RegisterFormat("jpeg", "jpeg", jpeg.Decode, jpeg.DecodeConfig)
-	file, err := os.Open("./test2.jpg")
+	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
+	// open a sample image
+	file, err := os.Open("./octocat.jpg")
 	if err != nil {
 		log.Fatal(err)
 	}
