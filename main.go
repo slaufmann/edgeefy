@@ -1,6 +1,8 @@
 package main
 
 import (
+	"flag"
+	"fmt"
 	"image"
 	"image/color"
 	"image/jpeg"
@@ -8,6 +10,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 // GrayPixel is a data structure to represent the gray and alpha value of a pixel.
@@ -17,11 +20,42 @@ type GrayPixel struct {
 }
 
 func main() {
+	// define command line flags
+	blurFlagPtr := flag.Bool("blur", true, "perform gaussian blur before edge detection (optional, default: true)")
+	inputFileArgPtr := flag.String("input", "", "path to input file (required)")
+	outputFileArgPtr := flag.String("output", "out.jpg", "path to output file (optional, default: out.jpg")
+	minThresholdArgPtr := flag.Float64("min", float64(0.2), "ratio of lower threshold (optional, default: 0.2")
+	maxThresholdArgPtr := flag.Float64("max", float64(0.6), "ratio of upper threshold (optional, default: 0.6")
+	// parse command line flags and arguments
+	flag.Parse()
+	// check for required arguments, exit if empty path is provided
+	if *inputFileArgPtr == "" {	// if no input filepath was specified, print message and exit
+		fmt.Println("No path to input file specified, nothing to do.")
+		return
+	}
+	// check threshold ratio arguments, exit if invalid values are given
+	if !isValidRatioValue(*minThresholdArgPtr) || !isValidRatioValue(*maxThresholdArgPtr) {
+		fmt.Println("Invalid value for threshold ratio given, exiting.")
+		return
+	}
+
 	// register the jpeg and png formats with the image library
 	image.RegisterFormat("jpeg", "jpeg", jpeg.Decode, jpeg.DecodeConfig)
 	image.RegisterFormat("png", "png", png.Decode, png.DecodeConfig)
-	// open a sample image
-	file, err := os.Open("./octocat.jpg")
+
+	// open the image specified by input argument
+	pixels := openImage(*inputFileArgPtr)
+	// perform Canny edge detection on the pixel array
+	pixels = CannyEdgeDetect(pixels, *blurFlagPtr, *minThresholdArgPtr, *maxThresholdArgPtr)
+	// write result to image file
+	writeImage(pixels, *outputFileArgPtr)
+
+}
+
+// openImage opens the image given by a path string, converts it to grayscale and returns the pixels as a
+// two-dimensional array
+func openImage(path string) [][]GrayPixel {
+	file, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -33,17 +67,27 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// perform Canny edge detection on the pixel array
-	pixels = CannyEdgeDetect(pixels, bool(false))
+	return pixels
+}
 
+// writeImage takes a two-dimensional array of grayvalue pixels and writes the image to disc. The format of the image
+// is specified by the path string. Suppoerted formats are png and jpg. If the path string is not detected as png a jpg
+// is written by default.
+func writeImage(pixels [][]GrayPixel, path string) {
 	// create grayscale image from the pixel array and write it to disk
 	grayImg := getImageFromArray(pixels)
-	outFile, err := os.Create("./out.jpg")
+	outFile, err := os.Create(path)
 	if err != nil {
 		log.Fatal(err)
 	}
-	opts := jpeg.Options{95}
-	err = jpeg.Encode(outFile, grayImg, &opts)
+	// determine what image file type it should be
+	ext := filepath.Ext(path)
+	if ext == "png" {
+		err = png.Encode(outFile, grayImg)
+	} else {
+		opts := jpeg.Options{95}
+		err = jpeg.Encode(outFile, grayImg, &opts)
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,6 +135,14 @@ func getImageFromArray(pixels [][]GrayPixel) *image.Gray {
 	}
 
 	return img
+}
+
+// isValidRatioValue checks whether the given value lies between 0.0 and 1.0 thus providing a valid value for a ratio.
+func isValidRatioValue(x float64) bool {
+	if (x >= float64(0)) && (x <= float64(1)) {
+		return true
+	}
+	return false
 }
 
 // rgbaToGrayPixel converts the given Color object to a GrayPixel object.
