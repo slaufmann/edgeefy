@@ -28,9 +28,15 @@ func main() {
 	maxThresholdArgPtr := flag.Float64("max", float64(0.6), "ratio of upper threshold (optional, default: 0.6")
 	// parse command line flags and arguments
 	flag.Parse()
-	// check for required arguments
+	// check for required arguments, exit if empty path is provided
 	if *inputFileArgPtr == "" {	// if no input filepath was specified, print message and exit
 		fmt.Println("No path to input file specified, nothing to do.")
+		return
+	}
+	// check threshold ratio arguments, exit if invalid values are given
+	if !isValidRatioValue(*minThresholdArgPtr) || !isValidRatioValue(*maxThresholdArgPtr) {
+		fmt.Println("Invalid value for threshold ratio given, exiting.")
+		return
 	}
 
 	// register the jpeg and png formats with the image library
@@ -129,6 +135,14 @@ func getImageFromArray(pixels [][]GrayPixel) *image.Gray {
 	}
 
 	return img
+}
+
+// isValidRatioValue checks whether the given value lies between 0.0 and 1.0 thus providing a valid value for a ratio.
+func isValidRatioValue(x float64) bool {
+	if (x >= float64(0)) && (x <= float64(1)) {
+		return true
+	}
+	return false
 }
 
 // rgbaToGrayPixel converts the given Color object to a GrayPixel object.
