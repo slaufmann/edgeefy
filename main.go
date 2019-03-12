@@ -46,7 +46,7 @@ func main() {
 	// open the image specified by input argument
 	pixels := openImage(*inputFileArgPtr)
 	// perform Canny edge detection on the pixel array
-	pixels = CannyEdgeDetect(pixels, bool(false), *minThresholdArgPtr, *maxThresholdArgPtr)
+	pixels = CannyEdgeDetect(pixels, *blurFlagPtr, *minThresholdArgPtr, *maxThresholdArgPtr)
 	// write result to image file
 	writeImage(pixels, *outputFileArgPtr)
 
