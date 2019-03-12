@@ -16,9 +16,6 @@ const (
 	VERTICAL
 )
 
-const HIGH_THRESHOLD_RATIO = 0.6	// high threshold for suppression of pixels
-const LOW_THRESHHOLD_RATIO = 0.2	// low threshold for suppression of pixels
-
 var SOBEL_X = []float64{1, 0, -1, 2, 0, -2, 1, 0, -1} // matrix values for sobel filter (x-component)
 var SOBEL_Y = []float64{1, 2, 1, 0, 0, 0, -1, -2, -1} // matrix values for sobel filter (y-component)
 
@@ -29,8 +26,8 @@ func CannyEdgeDetect(pixels [][]GrayPixel, blur bool, minRatio, maxRatio float64
 	pixels, angles := sobel(pixels)
 	pixels = nonMaximumSuppression(pixels, angles)
 	max := maxPixelValue(pixels)
-	high := HIGH_THRESHOLD_RATIO*float64(max)
-	low := LOW_THRESHHOLD_RATIO*float64(max)
+	high := maxRatio*float64(max)
+	low := minRatio*float64(max)
 	strong, weak := doublethreshold(pixels , high, low)
 	edgeTracking(pixels, strong, weak)
 
